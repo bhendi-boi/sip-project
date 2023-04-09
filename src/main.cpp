@@ -1,16 +1,28 @@
 #include <Arduino.h>
+#define PIN_TO_SENSOR 21
 
+// * variables to store previous and current state of pin
+int pinStateCurrent = LOW;
+int pinStatePrevious = LOW;
 void setup()
 {
-  // put your setup code here, to run once:
-  pinMode(33, OUTPUT);
+  Serial.begin(9600);
+  pinMode(PIN_TO_SENSOR, INPUT);
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
-  digitalWrite(33, HIGH);
-  delay(1000);
-  digitalWrite(33, LOW);
-  delay(1000);
+  pinStatePrevious = pinStateCurrent;
+  pinStateCurrent = digitalRead(PIN_TO_SENSOR);
+
+  // *  pin state change: LOW -> HIGH
+  if (pinStatePrevious == LOW && pinStateCurrent == HIGH)
+  {
+    Serial.println("Motion detected!");
+  }
+  // *  pin state change: HIGH -> LOW
+  else if (pinStatePrevious == HIGH && pinStateCurrent == LOW)
+  {
+    Serial.println("Motion stopped!");
+  }
 }
