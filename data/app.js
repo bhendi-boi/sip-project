@@ -1,6 +1,6 @@
 var gateway = `ws://${window.location.hostname}/ws`;
 var websocket;
-
+let isFanOn = true;
 // ----------------------------------------------------------------------------
 // Initialization
 // ----------------------------------------------------------------------------
@@ -8,25 +8,41 @@ var websocket;
 window.addEventListener("load", onLoad);
 
 function onLoad(event) {
-  initWebSocket();
+  // initWebSocket();
 }
 
 // ----------------------------------------------------------------------------
 // WebSocket handling
 // ----------------------------------------------------------------------------
 
-function initWebSocket() {
-  console.log("Trying to open a WebSocket connection...");
-  websocket = new WebSocket(gateway);
-  websocket.onopen = onOpen;
-  websocket.onclose = onClose;
-}
+// function initWebSocket() {
+//   console.log("Trying to open a WebSocket connection...");
+//   websocket = new WebSocket(gateway);
+//   websocket.onopen = onOpen;
+//   websocket.onclose = onClose;
+// }
 
-function onOpen(event) {
-  console.log("Connection opened");
-}
+// function onOpen(event) {
+//   console.log("Connection opened");
+// }
 
-function onClose(event) {
-  console.log("Connection closed");
-  setTimeout(initWebSocket, 2000);
+// function onClose(event) {
+//   console.log("Connection closed");
+//   setTimeout(initWebSocket, 2000);
+// }
+
+// custom code
+
+const input = document.getElementById("toggle");
+const label = document.getElementById("toggle-label");
+const slider = document.querySelector(".slider");
+slider.addEventListener("click", handleChange);
+input.addEventListener("change", handleChange);
+
+function handleChange() {
+  isFanOn = !isFanOn;
+  console.log(isFanOn);
+  input.setAttribute("data-checked", isFanOn);
+  slider.setAttribute("data-checked", isFanOn);
+  isFanOn ? (label.innerHTML = "Turn Off") : (label.innerHTML = "Turn On");
 }

@@ -1,33 +1,68 @@
 /* Box sizing rules */
 * {
     box-sizing: border-box;
-}
-
-/* Remove default margin */
-body,
-h1,
-h2,
-h3,
-h4,
-p,
-figure,
-blockquote,
-dl,
-dd {
     margin: 0;
+    padding: 0;
 }
 
-/* Set core body defaults */
+:root {
+    --background: #222222;
+    --heading: #fffffe;
+    --slate-100: #f1f5f9;
+    --zinc-500: #52525b;
+}
+
 body {
     min-height: 100vh;
     text-rendering: optimizeSpeed;
     line-height: 1.5;
+    margin-inline: 2rem;
+    padding-block: 4rem;
+    background-color: var(--background);
+    color: var(--heading);
 }
 
-/* Inherit fonts for inputs and buttons */
-input,
-button,
-textarea,
-select {
+input {
     font: inherit;
+    display: none;
+}
+
+label {
+    cursor: pointer;
+}
+
+.group {
+    margin-block-start: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    cursor: pointer;
+}
+
+.slider {
+    width: 2.25rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    background-color: var(--zinc-500);
+    border: 2px transparent;
+    display: flex;
+    align-items: center;
+    padding-inline: .125rem;
+    transition: all ease-in-out 600;
+}
+
+.fill {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background-color: var(--slate-100);
+    transition: all ease-in-out 600;
+}
+
+.slider[data-checked='true'] {
+    background-color: #22c55e;
+}
+
+.slider[data-checked='true'] .fill {
+    margin-left: .815rem;
 }
