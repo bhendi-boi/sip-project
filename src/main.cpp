@@ -1,7 +1,17 @@
 #include <Arduino.h>
+#include <SPIFFS.h>
+#include <WiFi.h>
+#include <ESPAsyncWebServer.h>
+
 #define PIN_TO_SENSOR_1 19
 #define PIN_TO_SENSOR_2 21
 #define RELAY_INPUT 22
+
+// WiFi credentials
+const char *WIFI_SSID = "bhendi";
+const char *WIFI_PASS = "qy3opdib2";
+
+AsyncWebServer server(80);
 
 // * variables to store previous and current state of pin
 int pinStateCurrent[] = {LOW, LOW};
@@ -12,6 +22,49 @@ int pinStatePrevious[] = {LOW, LOW};
 int status;
 int prevStatus;
 
+void initSPIFFS()
+{
+  if (!SPIFFS.begin())
+  {
+    Serial.println("Cannot mount SPIFFS volume...");
+    while (1)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(100);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(100);
+    }
+  }
+}
+
+void initWiFi()
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.printf("Trying to connect [%s] ", WiFi.macAddress().c_str());
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.printf(" %s\n", WiFi.localIP().toString().c_str());
+}
+String processor(const String &var)
+{
+  return String(var == "STATE" && status ? "on" : "off");
+}
+
+void onRootRequest(AsyncWebServerRequest *request)
+{
+  request->send(SPIFFS, "/index.html", "text/html", false, processor);
+}
+
+void initWebServer()
+{
+  server.on("/", onRootRequest);
+  server.serveStatic("/", SPIFFS, "/");
+  server.begin();
+}
 void logData()
 {
   Serial.println("");
@@ -55,10 +108,17 @@ int getMotionStatus()
 // * setup
 void setup()
 {
-  Serial.begin(9600);
+
   pinMode(PIN_TO_SENSOR_1, INPUT);
   pinMode(PIN_TO_SENSOR_2, INPUT);
   pinMode(RELAY_INPUT, OUTPUT);
+
+  Serial.begin(115200);
+  delay(500);
+
+  initSPIFFS();
+  initWiFi();
+  initWebServer();
 }
 
 // * loop
