@@ -57,6 +57,7 @@ void setup()
 {
   Serial.begin(9600);
   pinMode(PIN_TO_SENSOR_1, INPUT);
+  pinMode(PIN_TO_SENSOR_2, INPUT);
   pinMode(RELAY_INPUT, OUTPUT);
 }
 
