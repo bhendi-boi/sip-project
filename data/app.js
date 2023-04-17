@@ -1,5 +1,5 @@
-var gateway = `ws://${window.location.hostname}/ws`;
-var websocket;
+const gateway = `ws://${window.location.hostname}/ws`;
+let websocket;
 let isFanOn = true;
 // ----------------------------------------------------------------------------
 // Initialization
@@ -8,28 +8,34 @@ let isFanOn = true;
 window.addEventListener("load", onLoad);
 
 function onLoad(event) {
-  // initWebSocket();
+  initWebSocket();
 }
 
 // ----------------------------------------------------------------------------
 // WebSocket handling
 // ----------------------------------------------------------------------------
 
-// function initWebSocket() {
-//   console.log("Trying to open a WebSocket connection...");
-//   websocket = new WebSocket(gateway);
-//   websocket.onopen = onOpen;
-//   websocket.onclose = onClose;
-// }
+function initWebSocket() {
+  console.log("Trying to open a WebSocket connection...");
+  websocket = new WebSocket(gateway);
+  websocket.onopen = onOpen;
+  websocket.onclose = onClose;
+  websocket.onmessage = onMessage;
+}
 
-// function onOpen(event) {
-//   console.log("Connection opened");
-// }
+function onMessage(event) {
+  console.log(`Received a notification from ${event.origin}`);
+  console.log(event);
+}
 
-// function onClose(event) {
-//   console.log("Connection closed");
-//   setTimeout(initWebSocket, 2000);
-// }
+function onOpen(event) {
+  console.log("Connection opened");
+}
+
+function onClose(event) {
+  console.log("Connection closed");
+  setTimeout(initWebSocket, 2000);
+}
 
 // custom code
 
