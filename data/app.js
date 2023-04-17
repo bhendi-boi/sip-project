@@ -9,6 +9,7 @@ window.addEventListener("load", onLoad);
 
 function onLoad(event) {
   initWebSocket();
+  updateStyles();
 }
 
 // ----------------------------------------------------------------------------
@@ -26,6 +27,8 @@ function initWebSocket() {
 function onMessage(event) {
   console.log(`Received a notification from ${event.origin}`);
   console.log(event);
+  isFanOn = event.data === "true" ? true : false;
+  updateStyles();
 }
 
 function onOpen(event) {
@@ -35,6 +38,10 @@ function onOpen(event) {
 function onClose(event) {
   console.log("Connection closed");
   setTimeout(initWebSocket, 2000);
+}
+
+function sendToggleInfoToESP32() {
+  websocket.send("toggle");
 }
 
 // custom code
@@ -48,6 +55,11 @@ input.addEventListener("change", handleChange);
 function handleChange() {
   isFanOn = !isFanOn;
   console.log(isFanOn);
+  sendToggleInfoToESP32();
+  updateStyles();
+}
+
+function updateStyles() {
   input.setAttribute("data-checked", isFanOn);
   slider.setAttribute("data-checked", isFanOn);
   isFanOn ? (label.innerHTML = "Turn Off") : (label.innerHTML = "Turn On");
