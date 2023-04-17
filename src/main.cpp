@@ -8,8 +8,8 @@
 #define RELAY_INPUT 22
 
 // WiFi credentials
-const char *WIFI_SSID = "bhendi";
-const char *WIFI_PASS = "qy3opdib2";
+const char *WIFI_SSID = "YOUR_WIFI_SSID";
+const char *WIFI_PASS = "YOUR_WIFI_PASSWORD";
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -22,80 +22,12 @@ int pinStatePrevious[] = {LOW, LOW};
 // * HIGH for on and LOW for viceversa
 int status;
 int prevStatus;
+int manuallyTurnedOff;
 
-void onEvent(AsyncWebSocket *server,
-             AsyncWebSocketClient *client,
-             AwsEventType type,
-             void *arg,
-             uint8_t *data,
-             size_t len)
-{
-
-  switch (type)
-  {
-  case WS_EVT_CONNECT:
-    Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-    break;
-  case WS_EVT_DISCONNECT:
-    Serial.printf("WebSocket client #%u disconnected\n", client->id());
-    break;
-  case WS_EVT_DATA:
-  case WS_EVT_PONG:
-  case WS_EVT_ERROR:
-    break;
-  }
-}
-void initWebSocket()
-{
-  ws.onEvent(onEvent);
-  server.addHandler(&ws);
-}
-void initSPIFFS()
-{
-  if (!SPIFFS.begin())
-  {
-    Serial.println("Cannot mount SPIFFS volume...");
-    while (1)
-    {
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(100);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(100);
-    }
-  }
-}
-
-void initWiFi()
-{
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.printf("Trying to connect [%s] ", WiFi.macAddress().c_str());
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.print(".");
-    delay(500);
-  }
-  Serial.printf(" %s\n", WiFi.localIP().toString().c_str());
-}
-String processor(const String &var)
-{
-  return String(var == "STATE" && status ? "on" : "off");
-}
-
-void onRootRequest(AsyncWebServerRequest *request)
-{
-  request->send(SPIFFS, "/index.html", "text/html", false, processor);
-}
-
-void initWebServer()
-{
-  server.on("/", onRootRequest);
-  server.serveStatic("/", SPIFFS, "/");
-  server.begin();
-}
+// * custom functions written to abstract the logic
 void logData()
 {
-  Serial.println("");
+  Serial.printf("status: %d\n", status);
 }
 
 void remeberingPreviosState()
@@ -133,6 +65,113 @@ int getMotionStatus()
   return 1;
 }
 
+void notifyClients()
+{
+  ws.textAll(status ? "true" : "false");
+}
+
+// * Functions for handling exchange of data using websocket
+// * https://m1cr0lab-esp32.github.io/remote-control-with-websocket/websocket-data-exchange/
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
+{
+  AwsFrameInfo *info = (AwsFrameInfo *)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
+  {
+    data[len] = 0;
+    if (strcmp((char *)data, "toggle") == 0)
+    {
+      status = !status;
+      manuallyTurnedOff = !status;
+      if (manuallyTurnedOff)
+      {
+        Serial.println("Fan is manually turned off");
+        turnOff();
+      }
+      else
+      {
+        turnOn();
+      }
+      notifyClients();
+    }
+  }
+}
+
+void onEvent(AsyncWebSocket *server,
+             AsyncWebSocketClient *client,
+             AwsEventType type,
+             void *arg,
+             uint8_t *data,
+             size_t len)
+{
+
+  switch (type)
+  {
+  case WS_EVT_CONNECT:
+    Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+    break;
+  case WS_EVT_DISCONNECT:
+    Serial.printf("WebSocket client #%u disconnected\n", client->id());
+    break;
+  case WS_EVT_DATA:
+    handleWebSocketMessage(arg, data, len);
+    break;
+  case WS_EVT_PONG:
+  case WS_EVT_ERROR:
+    break;
+  }
+}
+
+void initWebSocket()
+{
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+}
+
+void initSPIFFS()
+{
+  if (!SPIFFS.begin())
+  {
+    Serial.println("Cannot mount SPIFFS volume...");
+    while (1)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(100);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(100);
+    }
+  }
+}
+
+void initWiFi()
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.printf("Trying to connect [%s] ", WiFi.macAddress().c_str());
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.printf(" %s\n", WiFi.localIP().toString().c_str());
+}
+
+String processor(const String &var)
+{
+  return String(var == "STATE" && status ? "on" : "off");
+}
+
+void onRootRequest(AsyncWebServerRequest *request)
+{
+  request->send(SPIFFS, "/index.html", "text/html", false, processor);
+}
+
+void initWebServer()
+{
+  server.on("/", onRootRequest);
+  server.serveStatic("/", SPIFFS, "/");
+  server.begin();
+}
+
 // * setup
 void setup()
 {
@@ -154,21 +193,27 @@ void setup()
 void loop()
 {
   ws.cleanupClients();
-  remeberingPreviosState();
-  readingInput();
-
-  prevStatus = status;
-  status = getMotionStatus();
-  if (!status)
+  if (manuallyTurnedOff)
   {
-    turnOff();
   }
   else
   {
-    if (!prevStatus)
+
+    remeberingPreviosState();
+    readingInput();
+
+    prevStatus = status;
+    status = getMotionStatus();
+    if (!status)
     {
-      turnOn();
+      turnOff();
+    }
+    else
+    {
+      if (!prevStatus)
+      {
+        turnOn();
+      }
     }
   }
-  delay(10000);
 }
