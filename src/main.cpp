@@ -44,17 +44,17 @@ void readingInput()
 
 void turnOn()
 {
-  Serial.println("Motion detected!, Fan is turned ON");
+  Serial.println("Humans detected!, Fan is turned ON");
   digitalWrite(RELAY_INPUT, LOW);
 }
 
 void turnOff()
 {
-  Serial.println("Motion stopped!, Fan is turned OFF");
+  Serial.println("No sign of Humans!, Fan is turned OFF");
   digitalWrite(RELAY_INPUT, HIGH);
 }
 
-int getMotionStatus()
+int areHumansPresent()
 {
   // * pinState change high to low
   // * motion stopped
@@ -203,7 +203,7 @@ void loop()
     readingInput();
 
     prevStatus = status;
-    status = getMotionStatus();
+    status = areHumansPresent();
     if (!status)
     {
       turnOff();
