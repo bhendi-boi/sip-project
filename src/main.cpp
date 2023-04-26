@@ -8,8 +8,8 @@
 #define RELAY_INPUT 22
 
 // WiFi credentials
-const char *WIFI_SSID = "YOUR_WIFI_SSID";
-const char *WIFI_PASS = "YOUR_WIFI_PASSWORD";
+const char *WIFI_SSID = "bhendi";
+const char *WIFI_PASS = "qy3opdib2";
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -23,11 +23,12 @@ int pinStatePrevious[] = {LOW, LOW};
 int status;
 int prevStatus;
 int manuallyTurnedOff;
+int noOfTries = 0;
 
 // * custom functions written to abstract the logic
 void logData()
 {
-  Serial.printf("status: %d\n", status);
+  Serial.printf("noOfTries: %d\n", noOfTries);
 }
 
 void remeberingPreviosState()
@@ -44,20 +45,29 @@ void readingInput()
 
 void turnOn()
 {
+  noOfTries = 0;
   Serial.println("Humans detected!, Fan is turned ON");
-  digitalWrite(RELAY_INPUT, LOW);
+  digitalWrite(RELAY_INPUT, HIGH);
 }
 
 void turnOff()
 {
-  Serial.println("No sign of Humans!, Fan is turned OFF");
-  digitalWrite(RELAY_INPUT, HIGH);
+  if (manuallyTurnedOff)
+  {
+    digitalWrite(RELAY_INPUT, LOW);
+    return;
+  }
+  noOfTries++;
+  if (noOfTries >= 3)
+  {
+    Serial.println("No sign of Humans!, Fan is turned OFF");
+    digitalWrite(RELAY_INPUT, LOW);
+  }
 }
 
 int areHumansPresent()
 {
   // * pinState change high to low
-  // * motion stopped
   if ((pinStatePrevious[0] == HIGH && pinStateCurrent[0] == LOW) || (pinStatePrevious[1] == HIGH && pinStateCurrent[1] == LOW))
   {
     return 0;
@@ -198,7 +208,7 @@ void loop()
   }
   else
   {
-
+    logData();
     remeberingPreviosState();
     readingInput();
 
@@ -207,6 +217,7 @@ void loop()
     if (!status)
     {
       turnOff();
+      delay(10000);
     }
     else
     {
@@ -216,4 +227,5 @@ void loop()
       }
     }
   }
+  delay(5000);
 }
